@@ -186,6 +186,18 @@ if (isProd && cloudMode) {
 /** @type {import('next').NextConfig} */
 export default withNextIntl({
   reactStrictMode: false,
+  // CF-WORKERS-ADAPTER: keep prisma + pg out of the bundle so they resolve
+  // against node_modules at runtime. pg-cloudflare relies on the `workerd`
+  // export condition to swap dist/empty.js for dist/index.js — the bundler
+  // resolves under `default` and only sees the empty stub, so externalize
+  // it (and its parents) and let workerd resolve at request time.
+  serverExternalPackages: [
+    '@prisma/client',
+    '.prisma/client',
+    '@prisma/adapter-pg',
+    'pg',
+    'pg-cloudflare',
+  ],
   env: {
     basePath,
     cloudMode,

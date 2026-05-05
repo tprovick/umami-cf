@@ -10,6 +10,24 @@ const log = debug('umami:prisma');
 
 const PRISMA = 'prisma';
 
+// CF-WORKERS-ADAPTER: when running on Cloudflare Workers (via OpenNext), pull
+// the Postgres URL from the bound HYPERDRIVE service rather than process.env,
+// which is unreliable on the Workers runtime. Falls back to DATABASE_URL for
+// local Node dev (`pnpm dev`, prisma CLI, etc.) where the binding doesn't
+// exist.
+function getDatabaseUrl(): string {
+  try {
+    // Dynamic require so non-Workers builds (prisma CLI, jest) don't choke on
+    // the @opennextjs/cloudflare module resolution.
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const { getCloudflareContext } = require('@opennextjs/cloudflare');
+    const ctx = getCloudflareContext({ async: false });
+    const hd = ctx?.env?.HYPERDRIVE;
+    if (hd?.connectionString) return hd.connectionString;
+  } catch {}
+  return process.env.DATABASE_URL as string;
+}
+
 const PRISMA_LOG_OPTIONS = {
   log: [
     {
@@ -362,13 +380,13 @@ function transaction(input: any, options?: any) {
 }
 
 function getSchema() {
-  const connectionUrl = new URL(process.env.DATABASE_URL);
+  const connectionUrl = new URL(getDatabaseUrl());
 
   return connectionUrl.searchParams.get('schema');
 }
 
 function getClient() {
-  const url = process.env.DATABASE_URL;
+  const url = getDatabaseUrl();
   const replicaUrl = process.env.DATABASE_REPLICA_URL;
   const logQuery = process.env.LOG_QUERY;
   const schema = getSchema();
@@ -387,7 +405,6 @@ function getClient() {
 
   if (!replicaUrl) {
     log('Prisma initialized');
-    globalThis[PRISMA] ??= baseClient;
     return baseClient;
   }
 
@@ -410,12 +427,22 @@ function getClient() {
   );
 
   log('Prisma initialized (with replica)');
-  globalThis[PRISMA] ??= extended;
-
   return extended;
 }
 
-const client = (globalThis[PRISMA] || getClient()) as ReturnType<typeof getClient>;
+// CF-WORKERS-ADAPTER: lazy Proxy so the client is built on first access at
+// request time. On Workers the pg adapter can't be created at module-load
+// time (no env yet, no IO allowed). A new client per Worker isolate via
+// globalThis cache is safe — Hyperdrive does the connection pooling at the
+// network layer.
+const client = new Proxy({} as ReturnType<typeof getClient>, {
+  get(_target, prop) {
+    if (!globalThis[PRISMA]) {
+      globalThis[PRISMA] = getClient();
+    }
+    return Reflect.get(globalThis[PRISMA], prop, globalThis[PRISMA]);
+  },
+});
 
 export default {
   client,

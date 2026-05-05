@@ -25,6 +25,10 @@ next-env.d.ts
 /src/generated
 pm2.yml
 
+# CF-WORKERS-ADAPTER: OpenNext + wrangler build artifacts
+/.open-next
+/.wrangler
+
 # misc
 .DS_Store
 .idea

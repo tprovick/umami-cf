@@ -1,0 +1,31 @@
+#:schema node_modules/wrangler/config-schema.json
+
+# CF-WORKERS-ADAPTER: deployment config for the analytics-umami wrapper.
+# The umami source lives in this repo (tprovick/umami-cf). Build via
+# `pnpm exec opennextjs-cloudflare build`, run via `wrangler dev`,
+# deploy via `wrangler deploy`.
+
+name = "analytics-umami"
+main = ".open-next/worker.js"
+compatibility_date = "2026-04-01"
+compatibility_flags = ["nodejs_compat"]
+
+[assets]
+directory = ".open-next/assets"
+binding = "ASSETS"
+
+# Hyperdrive-routed Postgres binding. In local dev (`wrangler dev`)
+# `localConnectionString` is used directly. In production, swap `id` for the
+# real Hyperdrive resource ID created via `wrangler hyperdrive create` or the
+# CF dashboard. The actual upstream DB credentials live on the Hyperdrive
+# config, NOT in this file.
+[[hyperdrive]]
+binding = "HYPERDRIVE"
+id = "PLACEHOLDER_REPLACE_BEFORE_DEPLOY"
+# Wrangler's Hyperdrive validator demands a password segment even though
+# local brew pg uses trust auth (pg_hba.conf accepts any/no password from
+# loopback). The literal `localdev` is ignored at the wire level.
+localConnectionString = "postgresql://tprovick:localdev@localhost:5432/umami"
+
+[observability]
+enabled = true

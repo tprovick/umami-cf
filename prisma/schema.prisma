@@ -1,7 +1,12 @@
 generator client {
-  provider   = "prisma-client"
-  output     = "../src/generated/prisma"
-  engineType = "client"
+  provider     = "prisma-client"
+  output       = "../src/generated/prisma"
+  engineType   = "client"
+  // CF-WORKERS-ADAPTER: emit a workerd-targeted client so the wasm query
+  // compiler is statically importable instead of runtime-base64-decoded
+  // (Workers blocks `new WebAssembly.Module(buffer)`).
+  runtime      = "workerd"
+  moduleFormat = "esm"
 }
 
 datasource db {
