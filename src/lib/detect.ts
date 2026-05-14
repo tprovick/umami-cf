@@ -1,13 +1,34 @@
 import path from 'node:path';
 import { browserName, detectOS } from 'detect-browser';
 import ipaddr from 'ipaddr.js';
-import isLocalhost from 'is-localhost-ip';
 import maxmind from 'maxmind';
 import { UAParser } from 'ua-parser-js';
 import { getIpAddress, stripPort } from '@/lib/ip';
 import { safeDecodeURIComponent } from '@/lib/url';
 
 const MAXMIND = 'maxmind';
+
+// CF-WORKERS-ADAPTER: replaces the `is-localhost-ip` dependency, which calls
+// `dgram.createSocket().bind()` and never resolves under the Workers runtime
+// (UDP sockets are unsupported). Static-range regex covers the same private
+// /loopback ranges as is-localhost-ip's IP_TESTER_RE without any IO.
+const LOCAL_IP_RE = new RegExp(
+  '^(' +
+    '::1$|' + // IPv6 loopback
+    '(::f{4}:)?127(?:\\.\\d{1,3}){3}$|' + // 127.0.0.0/8
+    '(::f{4}:)?10(?:\\.\\d{1,3}){3}$|' + // 10.0.0.0/8
+    '(::f{4}:)?(172\\.1[6-9]|172\\.2\\d|172\\.3[01])(?:\\.\\d{1,3}){2}$|' + // 172.16.0.0/12
+    '(::f{4}:)?192\\.168(?:\\.\\d{1,3}){2}$|' + // 192.168.0.0/16
+    '(::f{4}:)?169\\.254\\.([1-9]|1?\\d\\d|2[0-4]\\d|25[0-4])\\.\\d{1,3}$|' + // 169.254.0.0/16
+    'f[cd][\\da-f]{2}(::1$|:[\\da-f]{1,4}){1,7}$|' + // fc00::/7
+    'fe[89ab][\\da-f](::1$|:[\\da-f]{1,4}){1,7}$' + // fe80::/10
+    ')$',
+  'i',
+);
+
+function isLocalIp(ip: string): boolean {
+  return !!ip && LOCAL_IP_RE.test(ip);
+}
 
 const PROVIDER_HEADERS = [
   // Umami custom headers (cloud mode only)
@@ -78,7 +99,7 @@ function decodeHeader(s: string | undefined | null): string | undefined | null {
 
 export async function getLocation(ip: string = '', headers: Headers, skipHeaders: boolean) {
   // Ignore local ips
-  if (!ip || (await isLocalhost(ip))) {
+  if (!ip || isLocalIp(ip)) {
     return null;
   }
 
