@@ -10,6 +10,13 @@ main = ".open-next/worker.js"
 compatibility_date = "2026-04-01"
 compatibility_flags = ["nodejs_compat"]
 
+# Custom domain. CF auto-creates the DNS CNAME and issues TLS since the
+# provick.ca zone is on the same CF account. Workers.dev URL stays live
+# alongside; disable via `workers_dev = false` to retire it later.
+routes = [
+  { pattern = "analytics.provick.ca", custom_domain = true, zone_name = "provick.ca" },
+]
+
 [assets]
 directory = ".open-next/assets"
 binding = "ASSETS"
