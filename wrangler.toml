@@ -21,7 +21,7 @@ binding = "ASSETS"
 # config, NOT in this file.
 [[hyperdrive]]
 binding = "HYPERDRIVE"
-id = "PLACEHOLDER_REPLACE_BEFORE_DEPLOY"
+id = "50be8c76e40447dabbf2c361000beba0"
 # Wrangler's Hyperdrive validator demands a password segment even though
 # local brew pg uses trust auth (pg_hba.conf accepts any/no password from
 # loopback). The literal `localdev` is ignored at the wire level.
