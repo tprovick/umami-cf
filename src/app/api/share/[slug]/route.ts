@@ -91,7 +91,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ slu
     return notFound();
   }
 
-  data.token = createToken(data, secret());
+  data.token = await createToken(data, secret());
 
   const accountId = await getAccountId(entity);
 

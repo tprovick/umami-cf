@@ -16,7 +16,7 @@ export function getBearerToken(request: Request) {
 
 export async function checkAuth(request: Request) {
   const token = getBearerToken(request);
-  const payload = parseSecureToken(token, secret());
+  const payload = await parseSecureToken(token, secret());
   const shareToken = await parseShareToken(request);
 
   let user = null;
@@ -70,16 +70,16 @@ export async function saveAuth(data: any, expire = 0) {
     }
   }
 
-  return createSecureToken({ authKey }, secret());
+  return await createSecureToken({ authKey }, secret());
 }
 
 export async function hasPermission(role: string, permission: string | string[]) {
   return ensureArray(permission).some(e => ROLE_PERMISSIONS[role]?.includes(e));
 }
 
-export function parseShareToken(request: Request) {
+export async function parseShareToken(request: Request) {
   try {
-    return parseToken(request.headers.get(SHARE_TOKEN_HEADER), secret());
+    return await parseToken(request.headers.get(SHARE_TOKEN_HEADER) as string, secret());
   } catch (e) {
     log(e);
     return null;

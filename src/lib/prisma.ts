@@ -1,6 +1,7 @@
 import { PrismaPg } from '@prisma/adapter-pg';
 import { readReplicas } from '@prisma/extension-read-replicas';
 import debug from 'debug';
+import { cache } from 'react';
 import { PrismaClient } from '@/generated/prisma/client';
 import { DEFAULT_PAGE_SIZE, FILTER_COLUMNS, OPERATORS, SESSION_COLUMNS } from './constants';
 import { filtersObjectToArray } from './params';
@@ -431,16 +432,17 @@ function getClient() {
 }
 
 // CF-WORKERS-ADAPTER: lazy Proxy so the client is built on first access at
-// request time. On Workers the pg adapter can't be created at module-load
-// time (no env yet, no IO allowed). A new client per Worker isolate via
-// globalThis cache is safe — Hyperdrive does the connection pooling at the
-// network layer.
+// request time. On Workers we can't cache the client across requests — the
+// underlying pg connection is released back to Hyperdrive's pool between
+// requests and reusing it hangs. React's `cache()` memoizes within a single
+// request, so each request gets a fresh client but multiple `client.foo`
+// accesses within the same request hit one client. Hyperdrive handles the
+// real connection pooling.
+const getCachedClient = cache(getClient);
 const client = new Proxy({} as ReturnType<typeof getClient>, {
   get(_target, prop) {
-    if (!globalThis[PRISMA]) {
-      globalThis[PRISMA] = getClient();
-    }
-    return Reflect.get(globalThis[PRISMA], prop, globalThis[PRISMA]);
+    const c = getCachedClient();
+    return Reflect.get(c, prop, c);
   },
 });
 

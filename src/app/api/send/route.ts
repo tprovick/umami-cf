@@ -308,7 +308,7 @@ export async function POST(request: Request) {
       });
     }
 
-    const token = createToken({ websiteId, sessionId, visitId, iat }, secret());
+    const token = await createToken({ websiteId, sessionId, visitId, iat }, secret());
 
     return json({ cache: token, sessionId, visitId });
   } catch (e) {

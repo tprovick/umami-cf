@@ -36,7 +36,7 @@ export async function POST(request: Request) {
   if (redis.enabled) {
     token = await saveAuth({ userId: id, role });
   } else {
-    token = createSecureToken({ userId: user.id, role }, secret());
+    token = await createSecureToken({ userId: user.id, role }, secret());
   }
 
   const teams = await getAllUserTeams(id);
