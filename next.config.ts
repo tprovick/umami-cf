@@ -186,6 +186,8 @@ if (isProd && cloudMode) {
 /** @type {import('next').NextConfig} */
 export default withNextIntl({
   reactStrictMode: false,
+  // CF-WORKERS-ADAPTER: don't advertise the framework (x-powered-by: Next.js).
+  poweredByHeader: false,
   // CF-WORKERS-ADAPTER: keep prisma + pg out of the bundle so they resolve
   // against node_modules at runtime. pg-cloudflare relies on the `workerd`
   // export condition to swap dist/empty.js for dist/index.js — the bundler
