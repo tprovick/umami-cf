@@ -200,6 +200,12 @@ export default withNextIntl({
     'pg',
     'pg-cloudflare',
   ],
+  // CF-WORKERS-ADAPTER: OpenNext >=1.20 uploads every traced .wasm as a Worker
+  // module. The prisma CLI (all-provider engines) and the Netlify plugin are
+  // never loaded at runtime but push the Worker past the 64 MiB limit.
+  outputFileTracingExcludes: {
+    '*': ['node_modules/prisma/**', 'node_modules/@netlify/**'],
+  },
   env: {
     basePath,
     cloudMode,
