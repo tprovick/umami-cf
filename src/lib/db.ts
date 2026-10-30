@@ -10,7 +10,9 @@ BigInt.prototype.toJSON = function () {
 };
 
 export function getDatabaseType(url = process.env.DATABASE_URL) {
-  const type = url?.split(':')[0];
+  // CF-WORKERS-ADAPTER: on Workers the connection comes from Hyperdrive and
+  // DATABASE_URL is unset, so fall back to the DATABASE_TYPE secret.
+  const type = url?.split(':')[0] ?? process.env.DATABASE_TYPE;
 
   if (type === 'postgres') {
     return POSTGRESQL;
